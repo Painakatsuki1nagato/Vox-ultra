@@ -30,11 +30,11 @@
             <div class="relative">
                 <textarea id="textInput" placeholder="Escribe el texto profesional..." 
                     class="w-full h-40 bg-black/40 border border-white/5 rounded-xl p-4 text-sm focus:border-blue-500 outline-none transition-all resize-none text-white pb-8"></textarea>
-                <!-- Nueva Función: Contador de caracteres ampliado a 20000 -->
+                <!-- Contador de caracteres ampliado a 20000 -->
                 <div id="charCounter" class="absolute bottom-2 right-3 text-[10px] font-mono text-zinc-500">0 / 20000</div>
             </div>
 
-            <!-- Nueva Función: Control de Velocidad -->
+            <!-- Control de Velocidad -->
             <div class="space-y-2">
                 <div class="flex justify-between items-center px-1">
                     <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Velocidad de la voz</label>
@@ -57,7 +57,7 @@
                 <div id="btnLoader" class="spinner hidden"></div>
             </button>
 
-            <!-- Nueva Función: Medidor de Carga Avanzado -->
+            <!-- Medidor de Carga Avanzado -->
             <div id="progressContainer" class="hidden space-y-2 pt-2 animate-in fade-in">
                 <div class="flex justify-between text-[10px] font-mono text-zinc-400">
                     <span id="progressStatus">Procesando audio...</span>
@@ -91,7 +91,7 @@
             </div>
         </div>
 
-        <!-- Nueva Función: Historial de Textos Recientes -->
+        <!-- Historial de Textos Recientes -->
         <div id="historyPanel" class="glass p-6 space-y-3 hidden">
             <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Guiones Recientes</h3>
             <div id="historyList" class="space-y-2 max-h-32 overflow-y-auto pr-1"></div>
@@ -139,7 +139,7 @@
         updateCharCount();
         renderHistory();
 
-        // Monitores de eventos para nuevas funciones
+        // Monitores de eventos
         textInput.oninput = updateCharCount;
         speedInput.oninput = () => {
             const val = parseFloat(speedInput.value);
@@ -235,7 +235,6 @@
             try {
                 for (const chunk of textChunks) {
                     currentChunkIndex++;
-                    // Estimar tiempo: cada fragmento suele tardar aprox 1.5 segundos en el servidor de Google
                     const remainingSeconds = Math.ceil((totalChunks - currentChunkIndex + 1) * 1.5);
                     const pct = Math.round(((currentChunkIndex - 1) / totalChunks) * 100);
                     updateProgress(pct, `Generando parte ${currentChunkIndex} de ${totalChunks}...`, `${remainingSeconds}s`);
@@ -256,6 +255,8 @@
                         })
                     });
 
+                    if (!response.ok) throw new Error("Fallo en la conexión");
+
                     const data = await response.json();
                     const b64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
                     
@@ -269,15 +270,12 @@
 
                 updateProgress(95, 'Uniendo segmentos de audio...', '1s');
 
-                // Calcular tamaño total combinado de PCM
                 let totalLength = combinedPcmBuffers.reduce((acc, buf) => acc + buf.length, 0);
                 let finalBuffer = new Uint8Array(44 + totalLength);
                 
-                // Generar cabecera WAV e insertarla
                 const header = createWavHeader(totalLength);
                 finalBuffer.set(header, 0);
 
-                // Unir todos los fragmentos binarios de audio secuencialmente
                 let offset = 44;
                 for (const buf of combinedPcmBuffers) {
                     finalBuffer.set(buf, offset);
@@ -289,7 +287,7 @@
                 currentUrl = URL.createObjectURL(currentBlob);
                 
                 mainAudio.src = currentUrl;
-                mainAudio.playbackRate = parseFloat(speedInput.value); // Aplicar velocidad configurada
+                mainAudio.playbackRate = parseFloat(speedInput.value);
                 saveBtn.href = currentUrl;
                 
                 updateProgress(100, '¡Masterización lista!', '0s');
@@ -299,6 +297,7 @@
                 statusMsg.innerText = 'LOCUCIÓN LISTA';
                 mainAudio.play();
             } catch (e) {
+                console.error(e);
                 statusMsg.innerText = 'ERROR EN EL PROCESO';
                 progressContainer.classList.add('hidden');
             } finally {
