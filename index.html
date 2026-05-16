@@ -1,0 +1,354 @@
+```html
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vox Ultra APK</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#3b82f6">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background-color: #0a0a0c; color: white; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .spinner { border: 3px solid rgba(255,255,255,0.1); border-top: 3px solid #3b82f6; border-radius: 50%; width: 24px; height: 24px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="font-sans antialiased select-none">
+    <div class="max-w-md mx-auto p-6 space-y-8">
+        
+        <header class="pt-4 flex flex-col items-center gap-2">
+            <div class="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-900/40">
+                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>
+            </div>
+            <h1 class="text-2xl font-black tracking-tighter uppercase italic">Vox Ultra</h1>
+            <p class="text-[10px] text-zinc-500 font-mono tracking-[0.2em]">ANDROID NATIVE INTERFACE</p>
+        </header>
+
+        <div class="glass p-6 space-y-6">
+            <div class="relative">
+                <textarea id="textInput" placeholder="Escribe el texto profesional..." 
+                    class="w-full h-40 bg-black/40 border border-white/5 rounded-xl p-4 text-sm focus:border-blue-500 outline-none transition-all resize-none text-white pb-8"></textarea>
+                <!-- Contador de caracteres ampliado a 20000 -->
+                <div id="charCounter" class="absolute bottom-2 right-3 text-[10px] font-mono text-zinc-500">0 / 20000</div>
+            </div>
+
+            <!-- Control de Velocidad -->
+            <div class="space-y-2">
+                <div class="flex justify-between items-center px-1">
+                    <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Velocidad de la voz</label>
+                    <span id="speedVal" class="text-[10px] font-mono text-blue-400 font-bold">1.0x (Normal)</span>
+                </div>
+                <input type="range" id="speedInput" min="0.5" max="2.0" step="0.1" value="1.0" class="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer accent-blue-500">
+            </div>
+
+            <div class="space-y-3">
+                <label class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Voz del Locutor</label>
+                <select id="voiceSelect" class="w-full bg-zinc-900 border border-white/10 p-4 rounded-xl text-sm outline-none focus:border-blue-500 appearance-none">
+                    <option value="Charon">Locutor Profesional (30 años exp)</option>
+                    <option value="Kore">Voz Narrativa Clara</option>
+                    <option value="Zephyr">Voz Juvenil Energética</option>
+                </select>
+            </div>
+
+            <button id="generateBtn" class="w-full py-5 rounded-2xl bg-blue-600 text-white font-black text-sm flex items-center justify-center gap-3 active:scale-95 transition-all shadow-xl shadow-blue-900/20">
+                <span id="btnText">GENERAR LOCUCIÓN</span>
+                <div id="btnLoader" class="spinner hidden"></div>
+            </button>
+
+            <!-- Medidor de Carga Avanzado -->
+            <div id="progressContainer" class="hidden space-y-2 pt-2 animate-in fade-in">
+                <div class="flex justify-between text-[10px] font-mono text-zinc-400">
+                    <span id="progressStatus">Procesando audio...</span>
+                    <span id="progressPercent">0%</span>
+                </div>
+                <div class="w-full bg-zinc-800 h-2 rounded-full overflow-hidden">
+                    <div id="progressBar" class="bg-blue-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <div class="text-right text-[9px] font-mono text-zinc-500" id="etaText">Tiempo restante est: --s</div>
+            </div>
+        </div>
+
+        <div id="resultPanel" class="glass p-6 space-y-6 hidden animate-in fade-in slide-in-from-bottom-4">
+            <div class="flex items-center justify-between px-1">
+                <span class="text-[10px] font-bold text-blue-400 uppercase tracking-widest">Master Finalizado</span>
+                <span id="timer" class="text-[10px] font-mono text-zinc-500">00:00</span>
+            </div>
+
+            <audio id="mainAudio" controls class="w-full h-12 opacity-90"></audio>
+            
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="shareBtn" class="flex items-center justify-center gap-2 py-4 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" x2="12" y1="2" y2="15"/></svg>
+                    <span class="text-[11px] font-bold uppercase">Enviar</span>
+                </button>
+
+                <a id="saveBtn" download="locucion.wav" class="flex items-center justify-center gap-2 py-4 bg-white text-black rounded-xl transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    <span class="text-[11px] font-bold uppercase">Guardar</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Historial de Textos Recientes -->
+        <div id="historyPanel" class="glass p-6 space-y-3 hidden">
+            <h3 class="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-1">Guiones Recientes</h3>
+            <div id="historyList" class="space-y-2 max-h-32 overflow-y-auto pr-1"></div>
+        </div>
+
+        <p id="statusMsg" class="text-center text-[10px] font-mono text-zinc-600 uppercase tracking-tighter"></p>
+
+        <footer class="pt-4 text-center opacity-10">
+            <p class="text-[8px] tracking-[0.4em] font-black uppercase">Studio Engine Native v2.0</p>
+        </footer>
+    </div>
+
+    <script>
+        // Tu clave API ha sido automáticamente colocada aquí:
+        const API_KEY = "AIzaSyA03VL8tsYjGtIRoz8gRNEW5KZsjnzow"; 
+        
+        let currentBlob = null;
+        let currentUrl = null;
+        let textHistory = JSON.parse(localStorage.getItem('vox_history')) || [];
+
+        const voicePrompts = {
+            Charon: "Habla como un locutor profesional con 30 años de experiencia, voz profunda y autoridad. Mantén un ritmo firme y locución de radio: ",
+            Kore: "",
+            Zephyr: ""
+        };
+
+        const generateBtn = document.getElementById('generateBtn');
+        const textInput = document.getElementById('textInput');
+        const voiceSelect = document.getElementById('voiceSelect');
+        const speedInput = document.getElementById('speedInput');
+        const speedVal = document.getElementById('speedVal');
+        const charCounter = document.getElementById('charCounter');
+        const progressContainer = document.getElementById('progressContainer');
+        const progressBar = document.getElementById('progressBar');
+        const progressPercent = document.getElementById('progressPercent');
+        const progressStatus = document.getElementById('progressStatus');
+        const etaText = document.getElementById('etaText');
+        const statusMsg = document.getElementById('statusMsg');
+        const resultPanel = document.getElementById('resultPanel');
+        const mainAudio = document.getElementById('mainAudio');
+        const saveBtn = document.getElementById('saveBtn');
+        const historyPanel = document.getElementById('historyPanel');
+        const historyList = document.getElementById('historyList');
+
+        // Actualizar contador e historial al arrancar
+        updateCharCount();
+        renderHistory();
+
+        // Monitores de eventos
+        textInput.oninput = updateCharCount;
+        speedInput.oninput = () => {
+            const val = parseFloat(speedInput.value);
+            speedVal.innerText = val === 1.0 ? "1.0x (Normal)" : `${val}x`;
+        };
+
+        function updateCharCount() {
+            const count = textInput.value.length;
+            charCounter.innerText = `${count} / 20000`;
+            if (count > 19000) charCounter.className = "absolute bottom-2 right-3 text-[10px] font-mono text-red-500 font-bold";
+            else charCounter.className = "absolute bottom-2 right-3 text-[10px] font-mono text-zinc-500";
+        }
+
+        function saveToHistory(text) {
+            if (!text || textHistory.includes(text)) return;
+            textHistory.unshift(text);
+            if (textHistory.length > 3) textHistory.pop(); // Guardar solo los últimos 3
+            localStorage.setItem('vox_history', JSON.stringify(textHistory));
+            renderHistory();
+        }
+
+        function renderHistory() {
+            if (textHistory.length === 0) { historyPanel.classList.add('hidden'); return; }
+            historyPanel.classList.remove('hidden');
+            historyList.innerHTML = '';
+            textHistory.forEach(txt => {
+                const item = document.createElement('div');
+                item.className = "p-3 bg-black/30 border border-white/5 rounded-xl text-xs text-zinc-400 truncate cursor-pointer active:bg-zinc-900/50 transition-colors";
+                item.innerText = txt;
+                item.onclick = () => { textInput.value = txt; updateCharCount(); };
+                historyList.appendChild(item);
+            });
+        }
+
+        // Lógica de fragmentación inteligente para evitar voz robótica
+        function splitText(text, maxChunkSize = 250) {
+            const sentences = text.match(/[^.!?]+[.!?]+(\s|$)|[^.!?]+/g) || [text];
+            const chunks = [];
+            let currentChunk = "";
+
+            sentences.forEach(sentence => {
+                if ((currentChunk + sentence).length > maxChunkSize) {
+                    if (currentChunk) chunks.push(currentChunk.trim());
+                    currentChunk = sentence;
+                } else {
+                    currentChunk += sentence;
+                }
+            });
+            if (currentChunk) chunks.push(currentChunk.trim());
+            return chunks;
+        }
+
+        function createWavHeader(dataLength) {
+            const buffer = new ArrayBuffer(44);
+            const view = new DataView(buffer);
+            const writeString = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true);
+            view.setUint16(22, 1, true);
+            view.setUint32(24, 24000, true);
+            view.setUint32(28, 48000, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+            return new Uint8Array(buffer);
+        }
+
+        generateBtn.onclick = async () => {
+            const rawText = textInput.value.trim();
+            if(!rawText) return;
+
+            // Validar que la API key no esté vacía antes de iniciar
+            if (!API_KEY || API_KEY.trim() === "") {
+                statusMsg.innerText = 'ERROR: No has colocado tu API Key de Google en el código';
+                return;
+            }
+
+            generateBtn.disabled = true;
+            document.getElementById('btnLoader').classList.remove('hidden');
+            document.getElementById('btnText').innerText = 'PROCESANDO...';
+            resultPanel.classList.add('hidden');
+            statusMsg.innerText = '';
+            
+            // Mostrar medidor de carga
+            progressContainer.classList.remove('hidden');
+            updateProgress(0, 'Analizando guion...', '--s');
+
+            const textChunks = splitText(rawText);
+            const totalChunks = textChunks.length;
+            let combinedPcmBuffers = [];
+            let currentChunkIndex = 0;
+
+            saveToHistory(rawText);
+
+            try {
+                for (const chunk of textChunks) {
+                    currentChunkIndex++;
+                    const remainingSeconds = Math.ceil((totalChunks - currentChunkIndex + 1) * 1.5);
+                    const pct = Math.round(((currentChunkIndex - 1) / totalChunks) * 100);
+                    updateProgress(pct, `Generando parte ${currentChunkIndex} de ${totalChunks}...`, `${remainingSeconds}s`);
+
+                    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${API_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: voicePrompts[voiceSelect.value] + chunk }] }],
+                            generationConfig: { 
+                                responseModalities: ["AUDIO"],
+                                speechConfig: { 
+                                    voiceConfig: { 
+                                        prebuiltVoiceConfig: { voiceName: voiceSelect.value } 
+                                    } 
+                                }
+                            },
+                            model: "gemini-2.5-flash-preview-tts"
+                        })
+                    });
+
+                    if (!response.ok) {
+                        if (response.status === 400 || response.status === 403) {
+                            throw new Error("API_KEY_INVALID");
+                        }
+                        throw new Error("HTTP_ERROR_" + response.status);
+                    }
+
+                    const data = await response.json();
+                    const b64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
+                    
+                    if (!b64) throw new Error("Fallo en la respuesta de IA");
+
+                    const bin = atob(b64);
+                    const uint = new Uint8Array(bin.length);
+                    for (let i = 0; i < bin.length; i++) uint[i] = bin.charCodeAt(i);
+                    combinedPcmBuffers.push(uint);
+                }
+
+                updateProgress(95, 'Uniendo segmentos de audio...', '1s');
+
+                let totalLength = combinedPcmBuffers.reduce((acc, buf) => acc + buf.length, 0);
+                let finalBuffer = new Uint8Array(44 + totalLength);
+                
+                const header = createWavHeader(totalLength);
+                finalBuffer.set(header, 0);
+
+                let offset = 44;
+                for (const buf of combinedPcmBuffers) {
+                    finalBuffer.set(buf, offset);
+                    offset += buf.length;
+                }
+
+                currentBlob = new Blob([finalBuffer], { type: 'audio/wav' });
+                if(currentUrl) URL.revokeObjectURL(currentUrl);
+                currentUrl = URL.createObjectURL(currentBlob);
+                
+                mainAudio.src = currentUrl;
+                mainAudio.playbackRate = parseFloat(speedInput.value);
+                saveBtn.href = currentUrl;
+                
+                updateProgress(100, '¡Masterización lista!', '0s');
+                setTimeout(() => progressContainer.classList.add('hidden'), 1000);
+
+                resultPanel.classList.remove('hidden');
+                statusMsg.innerText = 'LOCUCIÓN LISTA';
+                mainAudio.play();
+            } catch (e) {
+                console.error(e);
+                if (e.message === "API_KEY_INVALID") {
+                    statusMsg.innerText = 'ERROR: Tu API Key de Google no es válida o está mal copiada';
+                } else {
+                    statusMsg.innerText = 'ERROR EN EL PROCESO (Inténtalo de nuevo)';
+                }
+                progressContainer.classList.add('hidden');
+            } finally {
+                generateBtn.disabled = false;
+                document.getElementById('btnLoader').classList.add('hidden');
+                document.getElementById('btnText').innerText = 'GENERAR LOCUCIÓN';
+            }
+        };
+
+        function updateProgress(percentage, statusText, eta) {
+            progressBar.style.width = `${percentage}%`;
+            progressPercent.innerText = `${percentage}%`;
+            progressStatus.innerText = statusText;
+            etaText.innerText = `Tiempo restante est: ${eta}`;
+        }
+
+        document.getElementById('shareBtn').onclick = async () => {
+            if(!currentBlob) return;
+            try {
+                const file = new File([currentBlob], "locucion_vox.wav", { type: "audio/wav" });
+                if(navigator.share) {
+                    await navigator.share({
+                        files: [file],
+                        title: 'Locución Vox Ultra',
+                    });
+                }
+            } catch(e) {
+                statusMsg.innerText = 'USA EL BOTÓN GUARDAR';
+            }
+        };
+    </script>
+</body>
+</html>
+
+```
+                  
