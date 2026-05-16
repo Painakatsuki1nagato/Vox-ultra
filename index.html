@@ -105,8 +105,9 @@
     </div>
 
     <script>
-        // Recuerda colocar tu API Key real de Google AI Studio en las comillas de abajo:
+        // Recuerda colocar tu API Key de Google AI Studio en las comillas de abajo:
         const API_KEY = "AIzaSyAB9VLBtsYjGtIRoz8gRiNEM5KZssjnzow"; 
+        
         let currentBlob = null;
         let currentUrl = null;
         let textHistory = JSON.parse(localStorage.getItem('vox_history')) || [];
@@ -216,10 +217,18 @@
             const rawText = textInput.value.trim();
             if(!rawText) return;
 
+            // Validar que la API key no esté vacía antes de iniciar
+            if (!API_KEY || API_KEY.trim() === "") {
+                statusMsg.innerText = 'ERROR: No has colocado tu API Key de Google en el código';
+                alert('Por favor, edita tu archivo en GitHub y coloca tu API Key en la línea de código correspondiente.');
+                return;
+            }
+
             generateBtn.disabled = true;
             document.getElementById('btnLoader').classList.remove('hidden');
             document.getElementById('btnText').innerText = 'PROCESANDO...';
             resultPanel.classList.add('hidden');
+            statusMsg.innerText = '';
             
             // Mostrar medidor de carga
             progressContainer.classList.remove('hidden');
@@ -251,11 +260,17 @@
                                         prebuiltVoiceConfig: { voiceName: voiceSelect.value } 
                                     } 
                                 }
-                            }
+                            },
+                            model: "gemini-2.5-flash-preview-tts"
                         })
                     });
 
-                    if (!response.ok) throw new Error("Fallo en la conexión");
+                    if (!response.ok) {
+                        if (response.status === 400 || response.status === 403) {
+                            throw new Error("API_KEY_INVALID");
+                        }
+                        throw new Error("HTTP_ERROR_" + response.status);
+                    }
 
                     const data = await response.json();
                     const b64 = data.candidates?.[0]?.content?.parts?.find(p => p.inlineData)?.inlineData?.data;
@@ -298,7 +313,11 @@
                 mainAudio.play();
             } catch (e) {
                 console.error(e);
-                statusMsg.innerText = 'ERROR EN EL PROCESO';
+                if (e.message === "API_KEY_INVALID") {
+                    statusMsg.innerText = 'ERROR: Tu API Key de Google no es válida o está mal copiada';
+                } else {
+                    statusMsg.innerText = 'ERROR EN EL PROCESO (Inténtalo de nuevo)';
+                }
                 progressContainer.classList.add('hidden');
             } finally {
                 generateBtn.disabled = false;
@@ -333,3 +352,4 @@
 </html>
 
 ```
+            
